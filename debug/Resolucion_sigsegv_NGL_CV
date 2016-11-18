@@ -1,0 +1,133 @@
+// Tras haber comenzado a trabajar sobre los ejercicios de profiling, se nos indicó que primero debíamos completar el ejercicio "sigsegv" de la carpeta "debug". Se detalla a continuación la rutina seguida para completar dicho ejercicio.
+
+// NOTA: Para compilar ambos códigos era necesario utilizar directamente el comando "MAKE".
+
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ pluma Makefile
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ gcc -g -Wall small.e
+gcc: error: small.e: No existe el fichero o el directorio
+gcc: fatal error: no input files
+compilation terminated.
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ls
+Makefile  matmult.c
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ make
+gcc  -g -O0 -D__SMALL matmult.c -o small.e
+gcc  -g -O0 matmult.c -o big.e
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ks
+bash: ks: no se encontró la orden
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ls
+big.e  Makefile  matmult.c  small.e
+
+// Al ejecutar "small.e" y "big.e", "small.e" carga y no tira ningún error, mientras que "big.e" tira un error "Violación de segmento" (Segmentation fault).
+
+// A continuación, se ejecutó "ulimit -s unlimited" y se volvieron a correr "small.e" y "big.e".
+
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ulimit -s unlimited
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ./small.e
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ./big.e
+
+// No se encontraron errores durante la ejecución.
+
+// Al consultar en "Google" la función del comando "ulimit -s unlimited" se advirtió que dicho comando sirve para cambiar la cantidad de memoria "stack" disponible por nodo que está asignada por defecto. [Ver: http://disbauxes.upc.es/code/applied-physics-department/changing-the-stacksize-ulimit-s-limit-whenever-running-mpirun/] De esta forma, se "previene" el segmentation fault que tira el programa al ejecutarlo, cuando se queda sin espacio de memoria suficiente para seguir operando.
+
+// Al correr ambos programas desde una terminal nueva, como era de esperar, se obtuvo nuevamente el error "Violación de segmento" tras la ejecución de "big.e".
+
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ./small.e
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ./big.e
+Violación de segmento
+
+// Luego, se ejecutó "ulimit -a", antes y después de la ejecución de "ulimit -s unlimited" y, a continuación, se corrió "big.e" seguido de "ulimit.e"
+
+
+
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ulimit -a
+core file size          (blocks, -c) 0
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 15827
+max locked memory       (kbytes, -l) 64
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 65536
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) 8192
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) 15827
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ulimit -s unlimited
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ulimit -a
+core file size          (blocks, -c) 0
+data seg size           (kbytes, -d) unlimited
+scheduling priority             (-e) 0
+file size               (blocks, -f) unlimited
+pending signals                 (-i) 15827
+max locked memory       (kbytes, -l) 64
+max memory size         (kbytes, -m) unlimited
+open files                      (-n) 65536
+pipe size            (512 bytes, -p) 8
+POSIX message queues     (bytes, -q) 819200
+real-time priority              (-r) 0
+stack size              (kbytes, -s) unlimited
+cpu time               (seconds, -t) unlimited
+max user processes              (-u) 15827
+virtual memory          (kbytes, -v) unlimited
+file locks                      (-x) unlimited
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ ./big.e
+
+// NOTA: El programa debió ser detenido porque, aún después de haber esperado más de 15 min, no había terminado de operar.
+// Comando de detención: "Ctrl+Z"
+
+// Como no se observaban diferencias en la información de ocupación de la memoria en uno u otro caso, le ayuda a Cecilia y abrimos el script en el terminal (Comando: "nm big.e") porque estaba en lenguaje binario y no podía leerlo con "pluma". Sin embargo, entendí muy poco del código al leerlo.
+
+alumno@huayra:~/HOdebug-profile/debug/sigsegv/C$ nm big.e
+08049920 B __bss_start
+08049920 b completed.6279
+08049918 D __data_start
+08049918 W data_start
+080483a0 t deregister_tm_clones
+08048410 t __do_global_dtors_aux
+08049804 t __do_global_dtors_aux_fini_array_entry
+0804991c D __dso_handle
+0804980c d _DYNAMIC
+08049920 D _edata
+08049924 B _end
+080486d4 T _fini
+080486e8 R _fp_hw
+08048430 t frame_dummy
+08049800 t __frame_dummy_init_array_entry
+080487fc r __FRAME_END__
+         U free@@GLIBC_2.0
+080498f8 d _GLOBAL_OFFSET_TABLE_
+         w __gmon_start__
+080482d4 T _init
+08049804 t __init_array_end
+08049800 t __init_array_start
+080486ec R _IO_stdin_used
+         w _ITM_deregisterTMCloneTable
+         w _ITM_registerTMCloneTable
+08049808 d __JCR_END__
+08049808 d __JCR_LIST__
+         w _Jv_RegisterClasses
+080486d0 T __libc_csu_fini
+08048660 T __libc_csu_init
+         U __libc_start_main@@GLIBC_2.0
+08048580 T main
+         U malloc@@GLIBC_2.0
+0804845b T mat_Tmat_mul
+         U memset@@GLIBC_2.0
+080483d0 t register_tm_clones
+08048360 T _start
+08049920 D __TMC_END__
+08048390 T __x86.get_pc_thunk.bx
+
+// Respondiendo a las últimas dos preguntas de la guía, la ejecución de la orden "ulimit -s unlimited" no es una solución en el sentido de debugging, si no que se trata de una estrategia para aumentar "desde afuera" el espacio de memoria disponible para que el programa opere. No obstante, el "bug" en el script va a seguir estando.
+// Si se quisiera proporcionar una solución más robusta, habría que incluir dentro del script de "big.e" una orden de "malloc", que me permitiera asignar un espacio de memoria dinámico disponible para la ejecución del programa.
+
+// Al terminar este ejercicio, se continuó resolviendo los de la carpera "profiling".
+
+
+
+
+
